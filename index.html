@@ -1,0 +1,599 @@
+Here it is, the whole thing in one block:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DuckDuckUnblock</title>
+<style>
+  :root {
+    --bg: #f7f7f2;
+    --card: #ffffff;
+    --text: #222222;
+    --muted: #6b6b6b;
+    --accent: #de5833;
+    --accent-dark: #c74320;
+    --link: #1a5fb4;
+    --border: #e2e2da;
+    --shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  html.dark {
+    --bg: #1e2226;
+    --card: #2a2f35;
+    --text: #e8e8e3;
+    --muted: #9aa0a6;
+    --accent: #ff7a4d;
+    --accent-dark: #e8623a;
+    --link: #7db2ff;
+    --border: #3a4048;
+    --shadow: 0 2px 10px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+    transition: background .25s, color .25s;
+  }
+
+  /* ===== Landing ===== */
+  #landing {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 28px; padding: 24px;
+  }
+  .duck-wrap { text-align: center; }
+  .duck-emoji { font-size: 72px; display: block; animation: waddle 2.6s ease-in-out infinite; }
+  @keyframes waddle {
+    0%,100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg) translateY(-4px); }
+  }
+  h1.logo {
+    font-size: clamp(34px, 7vw, 54px);
+    font-weight: 800; letter-spacing: -1px; margin-top: 8px;
+  }
+  h1.logo .un { color: var(--accent); }
+  .tagline { color: var(--muted); font-size: 16px; margin-top: 6px; }
+
+  .searchbox {
+    width: min(640px, 100%);
+    display: flex; align-items: center;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 6px 8px 6px 18px;
+    position: relative;
+    transition: border-color .2s;
+  }
+  .searchbox:focus-within { border-color: var(--accent); }
+  .searchbox .icon { font-size: 20px; margin-right: 10px; opacity: .6; }
+  .searchbox input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-size: 18px; color: var(--text); padding: 10px 0;
+  }
+  .searchbox button {
+    border: none; background: var(--accent); color: #fff;
+    font-size: 16px; font-weight: 600;
+    padding: 10px 22px; border-radius: 10px; cursor: pointer;
+    transition: background .2s;
+  }
+  .searchbox button:hover { background: var(--accent-dark); }
+
+  #suggest {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: var(--shadow);
+    overflow: hidden; z-index: 10; display: none;
+  }
+  #suggest .s {
+    padding: 10px 18px; cursor: pointer; font-size: 15px;
+    display: flex; gap: 10px; align-items: center;
+  }
+  #suggest .s:hover, #suggest .s.active { background: var(--bg); }
+  #suggest .s .mag { opacity: .45; }
+
+  .landing-links { display: flex; gap: 22px; font-size: 14px; color: var(--muted); }
+  .landing-links a { color: var(--muted); text-decoration: none; }
+  .landing-links a:hover { color: var(--accent); }
+
+  /* ===== Results header ===== */
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 22px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 5;
+    flex-wrap: wrap;
+  }
+  header .mini-logo {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 800; font-size: 19px; cursor: pointer;
+    white-space: nowrap;
+  }
+  header .mini-logo span.duck { font-size: 26px; }
+  header .searchbox { flex: 1; min-width: 260px; padding: 4px 6px 4px 14px; }
+  header .searchbox input { font-size: 15px; padding: 8px 0; }
+  header .searchbox button { padding: 8px 16px; font-size: 14px; }
+
+  .tools {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .tool-btn {
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+    border-radius: 8px; padding: 7px 10px; font-size: 14px; cursor: pointer;
+  }
+  .tool-btn:hover { border-color: var(--accent); }
+
+  /* ===== Results ===== */
+  main { max-width: 720px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  #answer {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: var(--shadow);
+    padding: 16px 18px; margin-bottom: 22px; display: none;
+  }
+  #answer h3 { font-size: 17px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  #answer p { font-size: 14.5px; line-height: 1.55; color: var(--text); }
+  #answer a { color: var(--link); font-size: 13px; text-decoration: none; }
+  #answer img { max-width: 90px; float: right; margin-left: 12px; border-radius: 8px; }
+
+  .result { margin-bottom: 26px; }
+  .result .url {
+    font-size: 12.5px; color: #0a8043; word-break: break-all;
+    margin-bottom: 3px;
+  }
+  html.dark .result .url { color: #6dd58c; }
+  .result a.title {
+    font-size: 18px; color: var(--link); text-decoration: none; font-weight: 500;
+  }
+  .result a.title:hover { text-decoration: underline; }
+  .result .snippet { font-size: 14.5px; color: var(--muted); line-height: 1.55; margin-top: 4px; }
+
+  #status { text-align: center; color: var(--muted); padding: 40px 0; font-size: 15px; }
+  .spinner {
+    display: inline-block; width: 26px; height: 26px;
+    border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .8s linear infinite;
+    margin-bottom: 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .retry-btn {
+    margin-top: 14px; display: inline-block;
+    border: none; background: var(--accent); color: #fff;
+    padding: 9px 20px; border-radius: 9px; cursor: pointer; font-size: 14px;
+  }
+
+  footer {
+    text-align: center; color: var(--muted); font-size: 12.5px;
+    padding: 26px 10px 34px;
+  }
+  footer .duck { font-size: 18px; }
+
+  @media (max-width: 560px) {
+    header { gap: 10px; }
+    header .mini-logo span.word { display: none; }
+    .searchbox button { padding: 10px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LANDING ============ -->
+<div id="landing">
+  <div class="duck-wrap">
+    <span class="duck-emoji">🦆</span>
+    <h1 class="logo">Duck<span class="un">Duck</span>Unblock</h1>
+    <p class="tagline">The search engine that doesn't track you. Or tattle on you.</p>
+  </div>
+
+  <form class="searchbox" id="landingForm" autocomplete="off">
+    <span class="icon">🔍</span>
+    <input id="landingInput" type="text" placeholder="Search the web privately..." autofocus>
+    <button type="submit">Search</button>
+    <div id="suggest"></div>
+  </form>
+
+  <div class="landing-links">
+    <a href="#" onclick="toggleTheme(); return false;">Theme</a>
+    <a href="#" onclick="showAbout(); return false;">About</a>
+  </div>
+</div>
+
+<!-- ============ RESULTS ============ -->
+<div id="results" style="display:none;">
+  <header>
+    <div class="mini-logo" onclick="goHome()" title="Back to home">
+      <span class="duck">🦆</span><span class="word">Duck<span style="color:var(--accent)">Duck</span>Unblock</span>
+    </div>
+    <form class="searchbox" id="headerForm" autocomplete="off">
+      <input id="headerInput" type="text">
+      <button type="submit">Search</button>
+      <div id="suggest2" style="display:none"></div>
+    </form>
+    <div class="tools">
+      <button class="tool-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="answer"></div>
+    <div id="status"></div>
+    <div id="resultList"></div>
+  </main>
+</div>
+
+<footer>
+  <div><span class="duck">🦆</span> DuckDuckUnblock &mdash; a fan remake. Not affiliated with DuckDuckGo.</div>
+  <div style="margin-top:6px">Results come from DuckDuckGo through public CORS relays. Relays can be flaky; hit retry if a search fails.</div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- theme ----------
+  var dark = false;
+  try { dark = localStorage.getItem("ddu-theme") === "dark"; } catch (e) {}
+  function applyTheme() {
+    document.documentElement.classList.toggle("dark", dark);
+    var b = document.getElementById("themeBtn");
+    if (b) b.textContent = dark ? "☀️" : "🌙";
+    try { localStorage.setItem("ddu-theme", dark ? "dark" : "light"); } catch (e) {}
+  }
+  function toggleTheme() { dark = !dark; applyTheme(); }
+  applyTheme();
+
+  // ---------- elements ----------
+  var landing = document.getElementById("landing");
+  var resultsPage = document.getElementById("results");
+  var landingInput = document.getElementById("landingInput");
+  var headerInput = document.getElementById("headerInput");
+  var statusEl = document.getElementById("status");
+  var listEl = document.getElementById("resultList");
+  var answerEl = document.getElementById("answer");
+  var currentQuery = "";
+
+  // ---------- routing ----------
+  function goHome() {
+    resultsPage.style.display = "none";
+    landing.style.display = "flex";
+    document.title = "DuckDuckUnblock";
+    landingInput.focus();
+    landingInput.select();
+  }
+  window.goHome = goHome;
+
+  function showAbout() {
+    alert("DuckDuckUnblock\n\nA lightweight HTML remake of DuckDuckGo.\nSearches run through DuckDuckGo's public endpoints via open CORS relays. Nothing is stored: no history, no cookies, no account. All state lives in the page in front of you.");
+  }
+  window.showAbout = showAbout;
+
+  function doSearch(q) {
+    q = (q || "").trim();
+    if (!q) return;
+    currentQuery = q;
+    landing.style.display = "none";
+    resultsPage.style.display = "block";
+    headerInput.value = q;
+    document.title = q + " at DuckDuckUnblock";
+    hideSuggestions();
+    renderSkeleton();
+    runSearch(q);
+  }
+  window.doSearch = doSearch;
+
+  document.getElementById("landingForm").addEventListener("submit", function (e) {
+    e.preventDefault(); doSearch(landingInput.value);
+  });
+  document.getElementById("headerForm").addEventListener("submit", function (e) {
+    e.preventDefault(); doSearch(headerInput.value);
+  });
+
+  // ---------- rendering ----------
+  function renderSkeleton() {
+    answerEl.style.display = "none";
+    answerEl.innerHTML = "";
+    listEl.innerHTML = "";
+    statusEl.innerHTML = '<div class="spinner"></div><div>Fetching results…</div>';
+  }
+
+  function setStatus(html) { statusEl.innerHTML = html; }
+
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function showAnswer(card) {
+    if (!card || (!card.AbstractText && !card.Abstract && !card.Answer)) return;
+    var body = card.AbstractText || card.Abstract || card.Answer || "";
+    var html = "";
+    if (card.Answer && card.AbstractText && card.Answer !== card.AbstractText) {
+      body = card.Answer + "<br>" + card.AbstractText;
+    }
+    html += "<h3>";
+    if (card.Image) {
+      var img = card.Image;
+      if (img.indexOf("http") !== 0) img = "https://duckduckgo.com" + img;
+      html += '<img src="' + esc(img) + '" alt="">';
+    }
+    html += esc(card.Heading || currentQuery) + "</h3>";
+    html += "<p>" + body + "</p>";
+    if (card.AbstractURL) {
+      html += '<p style="margin-top:8px"><a href="' + esc(card.AbstractURL) + '" target="_blank" rel="noopener">' + esc(card.AbstractSource || card.AbstractURL) + "</a></p>";
+    }
+    answerEl.innerHTML = html;
+    answerEl.style.display = "block";
+  }
+
+  function showResults(results) {
+    if (!results.length) {
+      setStatus('<div>No results came back. The relays are picky sometimes — try again, or reword the search.</div><button class="retry-btn" onclick="doSearch(headerInput.value)">Retry</button>');
+      return;
+    }
+    setStatus("");
+    var html = "";
+    for (var i = 0; i < results.length; i++) {
+      var r = results[i];
+      html += '<div class="result">'
+        + '<div class="url">' + esc(r.displayUrl) + "</div>"
+        + '<a class="title" href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + "</a>"
+        + '<div class="snippet">' + r.snippet + "</div>"
+        + "</div>";
+    }
+    listEl.innerHTML = html;
+  }
+
+  function showError(msg) {
+    setStatus(
+      '<div style="font-size:34px">🦆💤</div>'
+      + '<div><b>Couldn\'t reach the search relays.</b></div>'
+      + '<div style="margin-top:6px">' + esc(msg) + "</div>"
+      + '<button class="retry-btn" onclick="doSearch(headerInput.value)">Retry</button>'
+    );
+  }
+
+  // ---------- networking ----------
+  function fetchWithTimeout(url, ms) {
+    return new Promise(function (resolve, reject) {
+      var ctrl = ("AbortController" in window) ? new AbortController() : null;
+      var t = setTimeout(function () {
+        if (ctrl) ctrl.abort();
+        reject(new Error("timed out"));
+      }, ms || 12000);
+      fetch(url, ctrl ? { signal: ctrl.signal } : {})
+        .then(function (r) { clearTimeout(t); resolve(r); })
+        .catch(function (e) { clearTimeout(t); reject(e); });
+    });
+  }
+
+  // CORS relays, tried in order
+  function relayUrls(target) {
+    var enc = encodeURIComponent(target);
+    return [
+      "https://api.allorigins.win/raw?url=" + enc,
+      "https://corsproxy.io/?url=" + enc,
+      "https://r.jina.ai/" + target
+    ];
+  }
+
+  async function fetchViaRelays(target, parse) {
+    var relays = relayUrls(target);
+    var lastErr = null;
+    for (var i = 0; i < relays.length; i++) {
+      try {
+        var res = await fetchWithTimeout(relays[i], 14000);
+        if (!res.ok) throw new Error("relay " + (i + 1) + " returned HTTP " + res.status);
+        var text = await res.text();
+        var out = parse(text);
+        if (out && out.length) return out;
+        throw new Error("relay " + (i + 1) + " returned no results");
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw (lastErr || new Error("all relays failed"));
+  }
+
+  // decode DuckDuckGo redirect links (/l/?uddg=ENCODED)
+  function unwrapHref(href) {
+    try {
+      if (href.indexOf("/l/") === 0 || href.indexOf("duckduckgo.com/l/") !== -1) {
+        var u = new URL(href, "https://duckduckgo.com");
+        var real = u.searchParams.get("uddg");
+        if (real) return decodeURIComponent(real);
+      }
+    } catch (e) {}
+    return href;
+  }
+
+  function parseDdgHtml(html) {
+    var doc = new DOMParser().parseFromString(html, "text/html");
+    var out = [];
+    var nodes = doc.querySelectorAll(".result__body, .web-result");
+    if (!nodes.length) nodes = doc.querySelectorAll(".result");
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      var a = n.querySelector("a.result__a") || n.querySelector("h2 a");
+      if (!a) continue;
+      var url = unwrapHref(a.getAttribute("href") || "");
+      if (!/^https?:/i.test(url)) continue;
+      var title = a.textContent.trim();
+      var sn = n.querySelector(".result__snippet");
+      var snippetHtml = sn ? sn.innerHTML : "";
+      var host;
+      try { host = new URL(url).hostname.replace(/^www\./, ""); } catch (e) { host = url; }
+      if (title) {
+        out.push({ url: url, displayUrl: host, title: title, snippet: snippetHtml });
+      }
+      if (out.length >= 25) break;
+    }
+    return out;
+  }
+
+  function parseJinaMarkdown(text) {
+    // r.jina.ai returns markdown; pull out [title](url) lines
+    var out = [], seen = {};
+    var re = /\[([^\]\n]{4,150})\]\((https?:\/\/[^\)\s]+)\)/g;
+    var m;
+    while ((m = re.exec(text)) && out.length < 25) {
+      var url = m[2];
+      var title = m[1].trim();
+      if (seen[url] || !title) continue;
+      if (/duckduckgo\.com|duck\.co/i.test(url)) continue;
+      seen[url] = true;
+      var host;
+      try { host = new URL(url).hostname.replace(/^www\./, ""); } catch (e) { host = url; }
+      out.push({ url: url, displayUrl: host, title: title, snippet: "" });
+    }
+    return out;
+  }
+
+  async function instantAnswer(q) {
+    try {
+      var url = "https://api.duckduckgo.com/?q=" + encodeURIComponent(q)
+        + "&format=json&no_redirect=1&no_html=0&skip_disambig=0";
+      var res = await fetchWithTimeout(url, 9000);
+      if (!res.ok) return null;
+      var data = await res.json();
+      return (data && (data.AbstractText || data.Abstract || data.Answer)) ? data : null;
+    } catch (e) { return null; }
+  }
+
+  async function runSearch(q) {
+    var answerPromise = instantAnswer(q);
+    var target = "https://html.duckduckgo.com/html/?q=" + encodeURIComponent(q) + "&kl=wt-wt";
+    var results = [];
+    var err = null;
+    try {
+      results = await fetchViaRelays(target, function (text) {
+        if (text.charAt(0) === "#" || text.indexOf("\n#") !== -1 && text.indexOf("<") === -1) {
+          return parseJinaMarkdown(text);
+        }
+        return parseDdgHtml(text);
+      });
+    } catch (e) { err = e; }
+
+    var card = null;
+    try { card = await answerPromise; } catch (e) {}
+    showAnswer(card);
+
+    if (results.length) {
+      showResults(results);
+    } else if (card && card.AbstractURL) {
+      // instant answer worked even though web results failed
+      showResults([{ url: card.AbstractURL, displayUrl: card.AbstractSource || "duckduckgo.com", title: card.Heading || q, snippet: card.AbstractText || card.Abstract || "" }]);
+      setStatus('<div style="font-size:13px;margin-top:14px">Only the instant answer came back; the web-result relays failed.</div>');
+    } else {
+      showError(err ? (err.message || String(err)) : "no results returned");
+    }
+  }
+
+  // ---------- autocomplete ----------
+  var suggestBoxes = [
+    { box: document.getElementById("suggest"), input: landingInput },
+    { box: document.getElementById("suggest2"), input: headerInput }
+  ];
+  var sugTimer = null, sugIndex = -1, sugItems = [];
+
+  function hideSuggestions() {
+    suggestBoxes.forEach(function (s) { s.box.style.display = "none"; s.box.innerHTML = ""; });
+    sugIndex = -1; sugItems = [];
+  }
+
+  function renderSuggestions(box, input, items) {
+    if (!items.length) { box.style.display = "none"; return; }
+    sugItems = items; sugIndex = -1;
+    box.innerHTML = items.map(function (it) {
+      return '<div class="s" data-q="' + esc(it) + '"><span class="mag">🔍</span>' + esc(it) + "</div>";
+    }).join("");
+    box.style.display = "block";
+    Array.prototype.forEach.call(box.querySelectorAll(".s"), function (el) {
+      el.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+        input.value = el.getAttribute("data-q");
+        hideSuggestions();
+        doSearch(input.value);
+      });
+    });
+  }
+
+  async function fetchSuggestions(q) {
+    var target = "https://duckduckgo.com/ac/?q=" + encodeURIComponent(q) + "&type=list";
+    // try direct first (works in most browsers), fall back to a relay
+    var urls = [target].concat(relayUrls(target).slice(0, 2).map(function (u) {
+      return u.replace("url=" + encodeURIComponent(target), "url=" + encodeURIComponent(target));
+    }));
+    for (var i = 0; i < urls.length; i++) {
+      try {
+        var res = await fetchWithTimeout(urls[i], 6000);
+        if (!res.ok) continue;
+        var data = JSON.parse(await res.text());
+        var items = [];
+        if (Array.isArray(data)) {
+          // type=list returns [query, [suggestions]]
+          if (data.length === 2 && Array.isArray(data[1])) {
+            items = data[1];
+          } else {
+            data.forEach(function (d) { if (d && d.phrase) items.push(d.phrase); });
+          }
+        }
+        if (items.length) return items.slice(0, 8);
+      } catch (e) {}
+    }
+    return [];
+  }
+
+  suggestBoxes.forEach(function (s) {
+    s.input.addEventListener("input", function () {
+      var q = s.input.value.trim();
+      clearTimeout(sugTimer);
+      if (q.length < 2) { hideSuggestions(); return; }
+      sugTimer = setTimeout(async function () {
+        var items = await fetchSuggestions(q);
+        if (s.input.value.trim() === q) renderSuggestions(s.box, s.input, items);
+      }, 180);
+    });
+    s.input.addEventListener("keydown", function (e) {
+      var box = s.box;
+      if (box.style.display !== "block") return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        var els = box.querySelectorAll(".s");
+        if (!els.length) return;
+        sugIndex = e.key === "ArrowDown"
+          ? (sugIndex + 1) % els.length
+          : (sugIndex <= 0 ? els.length - 1 : sugIndex - 1);
+        Array.prototype.forEach.call(els, function (el, i) {
+          el.classList.toggle("active", i === sugIndex);
+        });
+        s.input.value = sugItems[sugIndex];
+      } else if (e.key === "Escape") {
+        hideSuggestions();
+      }
+    });
+    s.input.addEventListener("blur", function () {
+      setTimeout(hideSuggestions, 150);
+    });
+  });
+
+  // "/" focuses the search box from anywhere
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "/" && document.activeElement !== landingInput && document.activeElement !== headerInput) {
+      e.preventDefault();
+      var target = resultsPage.style.display !== "none" ? headerInput : landingInput;
+      target.focus(); target.select();
+    }
+  });
+})();
+</script>
+</body>
+</html>
+```
+
+Save it as `index.html` and you're good to commit.
